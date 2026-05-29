@@ -16,3 +16,15 @@ func Save(metric models.Metric) error {
 	store[metric.Name] = append(store[metric.Name], metric)
 	return nil
 }
+
+func GetAll(name string) []models.Metric {
+	mu.Lock()
+	defer mu.Unlock()
+	return store[name]
+}
+
+func Reset() {
+	mu.Lock()
+	defer mu.Unlock()
+	store = make(map[string][]models.Metric)
+}
