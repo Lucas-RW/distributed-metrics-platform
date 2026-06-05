@@ -2,11 +2,24 @@ package handlers
 
 import (
     "bytes"
+	"context"
+	"log"
     "encoding/json"
     "net/http"
     "net/http/httptest"
     "testing"
+	"os"
+	"github.com/Lucas-RW/distributed-metrics-platform/internal/storage"
 )
+
+func TestMain(m *testing.M) {
+    ctx := context.Background()
+    if err := storage.InitDB(ctx); err != nil {
+        log.Fatalf("could not connect to database: %v", err)
+    }
+    defer storage.CloseDB()
+    os.Exit(m.Run())
+}
 
 func newPostRequest(t *testing.T, body any) *http.Request {
     t.Helper()
