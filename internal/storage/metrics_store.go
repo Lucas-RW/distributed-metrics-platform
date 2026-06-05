@@ -11,8 +11,8 @@ func Save(metric models.Metric) error {
     ctx := context.Background()
 
     _, err := pool.Exec(ctx,
-        `INSERT INTO metrics (name, type, value, labels, timestamp)
-         VALUES ($1, $2, $3, $4, $5)`,
+        `INSERT INTO metrics (name, value, type, labels, timestamp)
+        VALUES ($1, $2, $3, $4, $5)`,
         metric.Name,
         metric.Value,
         metric.Type,
