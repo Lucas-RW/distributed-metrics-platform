@@ -2,7 +2,8 @@ FROM golang:1.26.3-alpine3.23 AS builder
 
 WORKDIR /app
 
-COPY go.mod ./
+COPY go.mod go.sum ./
+RUN go mod download
 
 COPY . .
 
@@ -13,5 +14,6 @@ FROM alpine:3.23
 WORKDIR /app
 
 COPY --from=builder /app/observability-platform .
+COPY --from=builder /app/migrations ./migrations
 
 ENTRYPOINT ["./observability-platform"]

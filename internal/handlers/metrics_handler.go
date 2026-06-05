@@ -30,7 +30,7 @@ func MetricsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = services.Ingest(metric)
+	_, err = services.Ingest(metric)
 
 	if err != nil {
 		http.Error(w, "Failed to ingest metric", http.StatusInternalServerError)
