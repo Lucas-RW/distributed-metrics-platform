@@ -38,7 +38,7 @@ jobs:
 
       - name: Run Migrations
         env:
-          DATABASE_URL: postgres://metrics_user:password@localhost:5432/metrics_db
+          DATABASE_URL: postgres://metrics_user:password@localhost:5432/metrics_db?sslmode=disable
         run: |
           go install -tags postgres github.com/golang-migrate/migrate/v4/cmd/migrate@latest
           migrate -path migrations -database "$DATABASE_URL" up
