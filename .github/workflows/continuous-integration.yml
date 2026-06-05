@@ -3,28 +3,50 @@ name: Continuous Integration
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
- 
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
- 
+
+    services:
+      db:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: metrics_user
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: metrics_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6
- 
+
       - name: Set Up Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.23'
           cache: true
- 
+
       - name: Verify Dependencies
         run: go mod verify
- 
+
+      - name: Run Migrations
+        env:
+          DATABASE_URL: postgres://metrics_user:password@localhost:5432/metrics_db
+        run: |
+          go install github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+          migrate -path migrations -database "$DATABASE_URL" up
+
       - name: Run Tests
+        env:
+          DATABASE_URL: postgres://metrics_user:password@localhost:5432/metrics_db
         run: go test -v -race ./...
- 
+
       - name: Build
         run: go build ./cmd/server/...
