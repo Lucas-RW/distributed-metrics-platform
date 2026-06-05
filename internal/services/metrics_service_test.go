@@ -1,11 +1,24 @@
 package services
 
 import (
+	"context"
+	"log"
+	"os"
     "math"
     "sync"
     "testing"
     "github.com/Lucas-RW/distributed-metrics-platform/internal/models"
+	"github.com/Lucas-RW/distributed-metrics-platform/internal/storage"
 )
+
+func TestMain(m *testing.M) {
+    ctx := context.Background()
+    if err := storage.InitDB(ctx); err != nil {
+        log.Fatalf("could not connect to database: %v", err)
+    }
+    defer storage.CloseDB()
+    os.Exit(m.Run())
+}
 
 func TestIngest_EmptyName_ReturnsError(t *testing.T) {
     metric := models.Metric{Name: "", Type: "counter", Value: 1.0}
