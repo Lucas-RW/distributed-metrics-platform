@@ -4,7 +4,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - DATABASE_URL=postgres://metrics_user:password@db:5432/metrics_db
+      - DATABASE_URL=postgres://metrics_user:password@db:5432/metrics_db?sslmode=disable
     depends_on:
       db:
         condition: service_healthy
@@ -13,12 +13,12 @@ services:
     image: postgres:18.4-alpine3.23
     environment:
       POSTGRES_USER: metrics_user
-      POSTGRES_PASSWORD: metrics_db
+      POSTGRES_PASSWORD: password
       POSTGRES_DB: metrics_db
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U metrics_user -d metrics_db"]
       interval: 5s
