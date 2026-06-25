@@ -11,6 +11,7 @@ import (
     _ "github.com/golang-migrate/migrate/v4/source/file"
     "github.com/Lucas-RW/distributed-metrics-platform/internal/handlers"
     "github.com/Lucas-RW/distributed-metrics-platform/internal/storage"
+    "github.com/prometheus/client_golang/prometheus/promhttp"
     "os"
 )
 
@@ -27,7 +28,8 @@ func main() {
     }
 
     mux := http.NewServeMux()
-    mux.HandleFunc("/metrics", handlers.MetricsHandler)
+    mux.HandleFunc("/ingest", handlers.IngestHandler)
+    mux.Handle("/metrics", promhttp.Handler())
 
     log.Println("Starting server on :8080")
     if err := http.ListenAndServe(":8080", mux); err != nil {

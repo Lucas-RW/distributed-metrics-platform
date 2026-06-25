@@ -5,9 +5,10 @@ import (
 	"net/http"
 	"github.com/Lucas-RW/distributed-metrics-platform/internal/models"
 	"github.com/Lucas-RW/distributed-metrics-platform/internal/services"
+	"github.com/Lucas-RW/distributed-metrics-platform/internal/telemetry"
 )
 
-func MetricsHandler(w http.ResponseWriter, r *http.Request) {
+func IngestHandler(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -33,10 +34,12 @@ func MetricsHandler(w http.ResponseWriter, r *http.Request) {
 	_, err = services.Ingest(metric)
 
 	if err != nil {
+		telemetry.MetricsIngestErrorsTotal.Inc()
 		http.Error(w, "Failed to ingest metric", http.StatusInternalServerError)
 		return
 	}
 	
+	telemetry.MetricsIngestedTotal.Inc()
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Metric ingested successfully"))
 

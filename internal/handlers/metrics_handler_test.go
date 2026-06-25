@@ -27,7 +27,7 @@ func newPostRequest(t *testing.T, body any) *http.Request {
     if err != nil {
         t.Fatalf("Failed to marshal request body: %v", err)
     }
-    req, err := http.NewRequest(http.MethodPost, "/metrics", bytes.NewBuffer(b))
+    req, err := http.NewRequest(http.MethodPost, "/ingest", bytes.NewBuffer(b))
     if err != nil {
         t.Fatalf("Failed to create request: %v", err)
     }
@@ -35,99 +35,99 @@ func newPostRequest(t *testing.T, body any) *http.Request {
     return req
 }
 
-func TestMetricsHandler_GetRequest_Returns405(t *testing.T) {
-    req, _ := http.NewRequest(http.MethodGet, "/metrics", nil)
+func TestIngestHandler_GetRequest_Returns405(t *testing.T) {
+    req, _ := http.NewRequest(http.MethodGet, "/ingest", nil)
     rr := httptest.NewRecorder()
-    MetricsHandler(rr, req)
+    IngestHandler(rr, req)
     if rr.Code != http.StatusMethodNotAllowed {
         t.Errorf("Expected 405, got %d", rr.Code)
     }
 }
 
-func TestMetricsHandler_PutRequest_Returns405(t *testing.T) {
-    req, _ := http.NewRequest(http.MethodPut, "/metrics", nil)
+func TestIngestHandler_PutRequest_Returns405(t *testing.T) {
+    req, _ := http.NewRequest(http.MethodPut, "/ingest", nil)
     rr := httptest.NewRecorder()
-    MetricsHandler(rr, req)
+    IngestHandler(rr, req)
     if rr.Code != http.StatusMethodNotAllowed {
         t.Errorf("Expected 405, got %d", rr.Code)
     }
 }
 
-func TestMetricsHandler_DeleteRequest_Returns405(t *testing.T) {
-    req, _ := http.NewRequest(http.MethodDelete, "/metrics", nil)
+func TestIngestHandler_DeleteRequest_Returns405(t *testing.T) {
+    req, _ := http.NewRequest(http.MethodDelete, "/ingest", nil)
     rr := httptest.NewRecorder()
-    MetricsHandler(rr, req)
+    IngestHandler(rr, req)
     if rr.Code != http.StatusMethodNotAllowed {
         t.Errorf("Expected 405, got %d", rr.Code)
     }
 }
 
-func TestMetricsHandler_MalformedJSON_Returns400(t *testing.T) {
-    req, _ := http.NewRequest(http.MethodPost, "/metrics", bytes.NewBufferString("{not valid json}"))
+func TestIngestHandler_MalformedJSON_Returns400(t *testing.T) {
+    req, _ := http.NewRequest(http.MethodPost, "/ingest", bytes.NewBufferString("{not valid json}"))
     req.Header.Set("Content-Type", "application/json")
     rr := httptest.NewRecorder()
-    MetricsHandler(rr, req)
+    IngestHandler(rr, req)
     if rr.Code != http.StatusBadRequest {
         t.Errorf("Expected 400 for malformed JSON, got %d", rr.Code)
     }
 }
 
-func TestMetricsHandler_EmptyBody_Returns400(t *testing.T) {
-    req, _ := http.NewRequest(http.MethodPost, "/metrics", bytes.NewBufferString(""))
+func TestIngestHandler_EmptyBody_Returns400(t *testing.T) {
+    req, _ := http.NewRequest(http.MethodPost, "/ingest", bytes.NewBufferString(""))
     req.Header.Set("Content-Type", "application/json")
     rr := httptest.NewRecorder()
-    MetricsHandler(rr, req)
+    IngestHandler(rr, req)
     if rr.Code != http.StatusBadRequest {
         t.Errorf("Expected 400 for empty body, got %d", rr.Code)
     }
 }
 
-func TestMetricsHandler_MissingName_Returns400(t *testing.T) {
+func TestIngestHandler_MissingName_Returns400(t *testing.T) {
     body := map[string]any{"Type": "gauge", "Value": 1.0}
     rr := httptest.NewRecorder()
-    MetricsHandler(rr, newPostRequest(t, body))
+    IngestHandler(rr, newPostRequest(t, body))
     if rr.Code != http.StatusBadRequest {
         t.Errorf("Expected 400 for missing name, got %d", rr.Code)
     }
 }
 
-func TestMetricsHandler_EmptyName_Returns400(t *testing.T) {
+func TestIngestHandler_EmptyName_Returns400(t *testing.T) {
     body := map[string]any{"Name": "", "Type": "gauge", "Value": 1.0}
     rr := httptest.NewRecorder()
-    MetricsHandler(rr, newPostRequest(t, body))
+    IngestHandler(rr, newPostRequest(t, body))
     if rr.Code != http.StatusBadRequest {
         t.Errorf("Expected 400 for empty name, got %d", rr.Code)
     }
 }
 
-func TestMetricsHandler_InvalidType_Returns500(t *testing.T) {
+func TestIngestHandler_InvalidType_Returns500(t *testing.T) {
     body := map[string]any{"Name": "cpu_usage", "Type": "summary", "Value": 1.0}
     rr := httptest.NewRecorder()
-    MetricsHandler(rr, newPostRequest(t, body))
+    IngestHandler(rr, newPostRequest(t, body))
     if rr.Code != http.StatusInternalServerError {
         t.Errorf("Expected 500 for invalid metric type, got %d", rr.Code)
     }
 }
 
-func TestMetricsHandler_ValidMetric_Returns200(t *testing.T) {
+func TestIngestHandler_ValidMetric_Returns200(t *testing.T) {
     body := map[string]any{"Name": "cpu_usage", "Type": "gauge", "Value": 42.0}
     rr := httptest.NewRecorder()
-    MetricsHandler(rr, newPostRequest(t, body))
+    IngestHandler(rr, newPostRequest(t, body))
     if rr.Code != http.StatusOK {
         t.Errorf("Expected 200 for valid metric, got %d", rr.Code)
     }
 }
 
-func TestMetricsHandler_ValidMetric_ReturnsSuccessBody(t *testing.T) {
+func TestIngestHandler_ValidMetric_ReturnsSuccessBody(t *testing.T) {
     body := map[string]any{"Name": "cpu_usage", "Type": "gauge", "Value": 42.0}
     rr := httptest.NewRecorder()
-    MetricsHandler(rr, newPostRequest(t, body))
+    IngestHandler(rr, newPostRequest(t, body))
     if rr.Body.String() != "Metric ingested successfully" {
         t.Errorf("Unexpected response body: %q", rr.Body.String())
     }
 }
 
-func TestMetricsHandler_ValidMetric_WithLabels_Returns200(t *testing.T) {
+func TestIngestHandler_ValidMetric_WithLabels_Returns200(t *testing.T) {
     body := map[string]any{
         "Name":   "cpu_usage",
         "Type":   "gauge",
@@ -135,13 +135,13 @@ func TestMetricsHandler_ValidMetric_WithLabels_Returns200(t *testing.T) {
         "Labels": map[string]string{"region": "us-west"},
     }
     rr := httptest.NewRecorder()
-    MetricsHandler(rr, newPostRequest(t, body))
+    IngestHandler(rr, newPostRequest(t, body))
     if rr.Code != http.StatusOK {
         t.Errorf("Expected 200 for metric with labels, got %d", rr.Code)
     }
 }
 
-func TestMetricsHandler_ValidMetric_WithTimestamp_Returns200(t *testing.T) {
+func TestIngestHandler_ValidMetric_WithTimestamp_Returns200(t *testing.T) {
     body := map[string]any{
         "Name":      "cpu_usage",
         "Type":      "counter",
@@ -149,18 +149,18 @@ func TestMetricsHandler_ValidMetric_WithTimestamp_Returns200(t *testing.T) {
         "Timestamp": 1700000000,
     }
     rr := httptest.NewRecorder()
-    MetricsHandler(rr, newPostRequest(t, body))
+    IngestHandler(rr, newPostRequest(t, body))
     if rr.Code != http.StatusOK {
         t.Errorf("Expected 200 for metric with timestamp, got %d", rr.Code)
     }
 }
 
-func TestMetricsHandler_ValidMetric_AllThreeTypes(t *testing.T) {
+func TestIngestHandler_ValidMetric_AllThreeTypes(t *testing.T) {
     types := []string{"counter", "gauge", "histogram"}
     for _, metricType := range types {
         body := map[string]any{"Name": "cpu_usage", "Type": metricType, "Value": 1.0}
         rr := httptest.NewRecorder()
-        MetricsHandler(rr, newPostRequest(t, body))
+        IngestHandler(rr, newPostRequest(t, body))
         if rr.Code != http.StatusOK {
             t.Errorf("Expected 200 for type '%s', got %d", metricType, rr.Code)
         }
