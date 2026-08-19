@@ -1,4 +1,4 @@
-name: CI/CD Cloud Deployment
+name: CI/CD
 
 on:
   push:
