@@ -1,0 +1,33 @@
+# Non-secret database connection settings.
+#
+# The app only reads one env var (DATABASE_URL, see internal/storage/db.go
+# and cmd/server/main.go's runMigrations()), and that string embeds
+# credentials. So instead of stuffing the whole URL in here, this ConfigMap
+# carries the non-secret parts (host/port/db name/sslmode) and the
+# Deployment stitches them together with the Secret's DB_USER/DB_PASSWORD
+# into DATABASE_URL via Kubernetes' $(VAR) env interpolation. That keeps
+# real secrets out of this file entirely, so it's safe to commit.
+#
+# Edit DB_HOST to match the Postgres you're pointing at (DB_NAME is
+# already set to "neondb" and DB_SSLMODE to "require", the actual values
+# from the Neon Console's Connect modal for this project):
+#   - Local kind/minikube smoke test against your real Neon dev DB: use the
+#     Neon host from the Connect modal in the Neon Console, same as
+#     Cloud Run uses today.
+#   - Fully offline local testing: point this at an in-cluster Postgres
+#     instead (not included here — Level 6 only asks for the app's own
+#     Deployment/Service/ConfigMap; add a postgres Deployment+Service if you
+#     want a self-contained cluster).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: distributed-metrics-config
+  namespace: distributed-metrics
+  labels:
+    app.kubernetes.io/name: distributed-metrics-platform
+    app.kubernetes.io/part-of: distributed-metrics-platform
+data:
+  DB_HOST: "ep-blue-resonance-ayouh5i5-pooler.c-5.us-east-2.aws.neon.tech"
+  DB_PORT: "5432"
+  DB_NAME: "neondb"
+  DB_SSLMODE: "require"

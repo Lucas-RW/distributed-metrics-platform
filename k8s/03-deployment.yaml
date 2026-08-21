@@ -1,0 +1,100 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: distributed-metrics-platform
+  namespace: distributed-metrics
+  labels:
+    app.kubernetes.io/name: distributed-metrics-platform
+    app.kubernetes.io/part-of: distributed-metrics-platform
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: distributed-metrics-platform
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: distributed-metrics-platform
+      annotations:
+        # Scrape hints for a Prometheus running in-cluster (mirrors
+        # prometheus.yml's app:8080 target from docker-compose).
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: app
+          # Local kind/minikube: build+load this tag (see k8s/README.md).
+          # Real cluster: point at the same Artifact Registry image the
+          # Cloud Run deploy workflow builds, e.g.
+          #   us-central1-docker.pkg.dev/<PROJECT_ID>/distributed-metrics-platform/distributed-metrics-platform:<sha-or-tag>
+          image: distributed-metrics-platform:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: distributed-metrics-config
+                  key: DB_HOST
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: distributed-metrics-config
+                  key: DB_PORT
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: distributed-metrics-config
+                  key: DB_NAME
+            - name: DB_SSLMODE
+              valueFrom:
+                configMapKeyRef:
+                  name: distributed-metrics-config
+                  key: DB_SSLMODE
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: distributed-metrics-db-credentials
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: distributed-metrics-db-credentials
+                  key: DB_PASSWORD
+            # Reassembled from the pieces above via $(VAR) interpolation so
+            # the app keeps reading a single DATABASE_URL, exactly as
+            # internal/storage/db.go and main.go's runMigrations() already
+            # expect — no application code changes needed for k8s.
+            - name: DATABASE_URL
+              value: "postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NAME)?sslmode=$(DB_SSLMODE)"
+          # main.go runs DB migrations synchronously before the HTTP
+          # listener opens, so give it real time on a cold Neon connection
+          # before liveness/readiness start acting on failures.
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 3
+            failureThreshold: 20
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 15
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
